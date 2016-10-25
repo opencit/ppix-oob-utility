@@ -8,6 +8,7 @@ RUN_IPMITOOL=yes
 IPMITOOL_OUTPUT_FILE=/tmp/ipmitool.out
 IPMITOOL_OUTPUT_STDIN=no
 IPMITOOL_OUTPUT_TEXT=
+declare -a IMPITOOL_EXTRA_ARGS
 
 help_usage() {
   echo '
@@ -136,14 +137,14 @@ run_impitool() {
   local generator=$1
   local parser=$2
   local ipmitool_args=$($generator)
-  echo ipmitool -b 0x06 -t 0x2c raw $ipmitool_args
+  echo ipmitool $IMPITOOL_EXTRA_ARGS -b 0x06 -t 0x2c raw $ipmitool_args
   if [ "$RUN_IPMITOOL" == "yes" ]; then
     local ipmitool_found=$(which ipmitool)
     if [ -z "$ipmitool_found" ]; then
       log_error "ipmitool not found"
       return 1
     fi
-    ipmitool -b 0x06 -t 0x2c raw $ipmitool_args > $IPMITOOL_OUTPUT_FILE    
+    ipmitool $IMPITOOL_EXTRA_ARGS -b 0x06 -t 0x2c raw $ipmitool_args > $IPMITOOL_OUTPUT_FILE    
   fi
   # ipmitool output is space-separated hex values
   if [ "$IPMITOOL_OUTPUT_STDIN" == "yes" ]; then
@@ -255,57 +256,78 @@ if [ ! -t 0 ]; then
   IPMITOOL_OUTPUT_STDIN="yes"
 fi
 
+
+
 while [[ $# -gt 0 ]]
 do
-case $1 in
+arg=$1
+shift
+case $arg in
   discovery)
     echo "discovery"
-    run_impitool write_discovery parse_discovery
+    generator=write_discovery
+    parser=parse_discovery    
     ;;
   enable-txt-tpm)
     echo "enable-txt-tpm"
-    run_impitool write_enable_txt_tpm parse_enable_txt_tpm
+    generator=write_enable_txt_tpm
+    parser=parse_enable_txt_tpm    
     ;;
   clear-tpm)
     echo "clear-tpm"
-    #run_impitool write_clear_tpm parse_clear_tpm
+    #generator=...
+    #parser=...
     ;;
   clear-activate-tpm)
     echo "clear-activate-tpm"
-    #run_impitool write_activate_tpm parse_activate_tpm
+    #generator=...
+    #parser=...
     ;;
   clear-activate-tpm-enable-txt)
     echo "clear-activate-tpm-enable-txt"
-    #run_ipmitool ...
+    #generator=...
+    #parser=...
     ;;
   status-tpm)
     echo "status-tpm"
-    #run_ipmitool ...
+    #generator=...
+    #parser=...
     ;;
   enable-txt-ptt)
     echo "enable-txt-ptt"
-    #run_ipmitool ...
+    #generator=...
+    #parser=...
     ;;
   clear-ptt)
     echo "clear-ptt"
-    #run_ipmitool ...
+    #generator=...
+    #parser=...
     ;;
   clear-activate-ptt)
     echo "clear-activate-ptt"
-    #run_ipmitool ...
+    #generator=...
+    #parser=...
     ;;
   clear-activate-ptt-enable-txt)
     echo "clear-activate-ptt-enable-txt"
-    #run_ipmitool ...
+    #generator=...
+    #parser=...
     ;;
   disable-txt)
     echo "disable-txt"
-    #run_ipmitool ...
+    #generator=...
+    #parser=...
+    ;;
+  --)
+    IMPITOOL_EXTRA_ARGS=("$@")
+    break
     ;;
   *)
     help_usage
     exit 1
     ;;
 esac
-shift
+
 done
+
+run_impitool $generator $parser
