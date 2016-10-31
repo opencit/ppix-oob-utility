@@ -47,18 +47,79 @@ read_ssv_from_stdin_into_array() {
   eval "$varname=($text)"
 }
 
+#
+# input parameters: $1 - first hex number
+#                   $2 - second hex number
+get_features_supported() {
+  local hex=$1$2
+  #local hex=$1$2$3$4
+  #local hex=0100
+
+  # Convert to little endian, example: hex=034f, little endian = 4f03
+  local hex_le
+  local i=${#hex}
+
+  while [ $i -gt 0 ]
+  do
+  	i=$[$i-2]
+  	hex_le+=${hex:$i:2}
+  done
+  #echo "little_endian:"$hex_le
+  
+  # Once we have converted to little endian we parse the hex to decimal
+  local dec=$((16#$hex_le))
+  #echo "dec:"$dec
+
+  # We apply a right shift on the least significant bit to eliminate it. 
+  # We only care about the second and third least significan bits
+  local rs=$(($dec>>1))
+  #echo "rs:"$rs
+
+  # We convert to binary
+  local binary=$(echo "obase=2;$rs" | bc)
+  #echo "binary:"$binary
+
+  local j=${#binary}
+  if [[ $j == 1 ]]; then
+  	local bit1=${binary:$j-1:1}
+    echo $bit1
+  else
+  	local bit1=${binary:$j-1:1}
+  	local bit2=${binary:$j-2:1}
+  	local bits=$bit2$bit1
+  	echo $bits
+  fi
+
+}
+
 # usage: is_bit_set <hex-value> <bit-number>
 # return: 0 (true) if <bit-number> is set in <hex-value>, 1 (false) otherwise
 # example: if is_bit_set FF 3; then echo "bit 3 of FF is set"; fi
+# input parameters: $1 - first hex number
+#                   $2 - second hex number
+#                   $3 - bit position 
 is_hex_bit_set() {
-  local hex=$1
-  local bitnum=$2
+  local hex=$1$2
+  #echo "hex:"$hex
+  
+  # Convert to little endian, example: hex=034f, little endian = 4f03
+  local hex_le
+  local i=${#hex}
+
+  while [ $i -gt 0 ]
+  do
+  	i=$[$i-2]
+  	hex_le+=${hex:$i:2}
+  done
+  
+  local bitnum=$3
   # convert hex to decimal
-  local dec=$((16#$hex))
+  local dec=$((16#$hex_le))
   # convert bit number to a bitmask
   local mask=$((1<<$bitnum))
   # check bit: if set, result will be equal to mask; if not set, result will be zero
   local result=$(($dec & $mask))
+  #echo "result:"$result
   if [ $result -eq 0 ]; then return 1; fi
   return 0
 }
@@ -90,8 +151,11 @@ values_present() {
 
 values_required() {
   local array_name=$1
+  #echo $array_name
   local array_offset=$2
+  #echo $array_offset
   local expected_values=${@:3}
+  #echo $expected_values
   if values_present $array_name $array_offset ${expected_values[@]}; then
     return 0
   fi
@@ -190,10 +254,12 @@ parse_discovery() {
   local checksum
   local task_and_result
   local status
-  local password_attribute=(03 80)
+  #local password_attribute=(03 80)
+  local password_attribute
   local feature_supported
   local feature_enabled
-  local state=(00 00 02 00)
+  #local state=(00 00 02 00)
+  local state
   local i=0
   if values_required DISCOVERY_OUTPUT $i ${intel[@]}; then ((i+=${#intel[@]})); else return 1; fi
   if values_required DISCOVERY_OUTPUT $i ${signature[@]}; then ((i+=${#signature[@]})); else return 1; fi
@@ -203,23 +269,62 @@ parse_discovery() {
   checksum=${DISCOVERY_OUTPUT[$i]}; ((i+=1))
   task_and_result=${DISCOVERY_OUTPUT[$i]}; ((i+=1))
   status=${DISCOVERY_OUTPUT[$i]}; ((i+=1))
-  if values_required DISCOVERY_OUTPUT $i ${password_attribute[@]}; then ((i+=${#password_attribute[@]})); else return 1; fi
-  feature_supported=(${DISCOVERY_OUTPUT[@]:$i:2}); ((i+=2))
-  feature_enabled=(${DISCOVERY_OUTPUT[@]:$i:2}); ((i+=2))
-  if values_required DISCOVERY_OUTPUT $i ${state[@]}; then ((i+=${#state[@]})); else return 1; fi  
+  #if values_required DISCOVERY_OUTPUT $i ${password_attribute[@]}; then ((i+=${#password_attribute[@]})); else return 1; fi
+  
+  #echo ${DISCOVERY_OUTPUT[@]:$i:2}
+
+  password_attribute=${DISCOVERY_OUTPUT[@]:$i:2}; ((i+=2))
+  feature_supported=${DISCOVERY_OUTPUT[@]:$i:2}; ((i+=2))
+  feature_enabled=${DISCOVERY_OUTPUT[@]:$i:2}; ((i+=2))
+  #if values_required DISCOVERY_OUTPUT $i ${state[@]}; then ((i+=${#state[@]})); else return 1; fi  
+  state=${DISCOVERY_OUTPUT[@]:$i:4}; ((i+=4))
   log_debug_array feature_supported ${feature_supported[@]}
   log_debug_array feature_enabled ${feature_enabled[@]}
   local tpm_enabled="no"
   local ptt_enabled="no"
-  if is_hex_bit_set ${feature_supported[0]} 0; then echo "TXT is supported"; else echo "TXT is not supported"; fi
-  if is_hex_bit_set ${feature_supported[0]} 1; then echo "TPM is supported"; else echo "TPM is not supported"; fi
-  if is_hex_bit_set ${feature_supported[0]} 2; then echo "PTT is supported"; else echo "PTT is not supported"; fi
-  if is_hex_bit_set ${feature_enabled[0]} 0; then echo "TXT is enabled"; else echo "TXT is not enabled"; fi
-  if is_hex_bit_set ${feature_enabled[0]} 1; then echo "TPM is enabled"; tpm_enabled="yes"; else echo "TPM is not enabled"; fi
-  if is_hex_bit_set ${feature_enabled[0]} 2; then echo "PTT is enabled"; ptt_enabled="yes"; else echo "PTT is not enabled"; fi
-  if [ "$tpm_enabled" == "yes" ] && [ "$ptt_enabled" == "yes" ]; then
-    log_error "invalid configuration: TPM and PTT cannot be enabled concurrently"
-  fi
+
+  #get_features_supported ${feature_enabled[0]}
+  local result_supported=$(get_features_supported ${feature_supported[0]})
+  case $result_supported in
+  11)
+    echo "dTPM, fTPM is supported"    
+    ;;
+  10)
+    echo "fTPM is supported"
+    ;;
+  1)
+    echo "dTPM is supported"
+    ;;
+  0)
+    echo "TPM is NOT supported"
+  esac
+
+  if is_hex_bit_set ${feature_supported[0]} 0; then echo "TXT is supported"; else echo "TXT is NOT supported"; fi
+  #if is_hex_bit_set ${feature_supported[0]} 1; then echo "TPM is supported"; else echo "TPM is not supported"; fi
+  #if is_hex_bit_set ${feature_supported[0]} 2; then echo "PTT is supported"; else echo "PTT is not supported"; fi
+
+
+  local result_enabled=$(get_features_supported ${feature_enabled[0]})
+  case $result_enabled in
+  11)
+    echo "Invalid configuration: dTPM and fTPM cannot be enabled concurrently"    
+    ;;
+  10)
+    echo "fTPM is enabled"
+    ;;
+  1)
+    echo "dTPM is enabled"
+    ;;
+  0)
+    echo "TPM is NOT enabled"
+  esac
+
+  if is_hex_bit_set ${feature_enabled[0]} 0; then echo "TXT is enabled"; else echo "TXT is NOT enabled"; fi
+  #if is_hex_bit_set ${feature_enabled[0]} 1; then echo "TPM is enabled"; tpm_enabled="yes"; else echo "TPM is not enabled"; fi
+  #if is_hex_bit_set ${feature_enabled[0]} 2; then echo "PTT is enabled"; ptt_enabled="yes"; else echo "PTT is not enabled"; fi
+  #if [ "$tpm_enabled" == "yes" ] && [ "$ptt_enabled" == "yes" ]; then
+  #  log_error "invalid configuration: TPM and PTT cannot be enabled concurrently"
+  #fi
 }
 
 write_enable_txt_tpm() {
