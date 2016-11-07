@@ -292,10 +292,10 @@ parse_discovery() {
   10)
     echo "fTPM is supported"
     ;;
-  1)
+  1|01)
     echo "dTPM is supported"
     ;;
-  0)
+  0|00)
     echo "TPM is NOT supported"
   esac
 
@@ -312,10 +312,10 @@ parse_discovery() {
   10)
     echo "fTPM is enabled"
     ;;
-  1)
+  1|01)
     echo "dTPM is enabled"
     ;;
-  0)
+  0|00)
     echo "TPM is NOT enabled"
   esac
 
@@ -348,11 +348,143 @@ parse_enable_txt_tpm() {
   DISCOVERY_OUTPUT=($hex_array)
   local intel=(57 01 00)
   local i=0
-  if values_required DISCOVERY_OUTPUT $i ${intel[@]}; then ((i+=${#intel[@]})); else return 1; fi
+  if values_required DISCOVERY_OUTPUT $i ${intel[@]}; then 
+  	echo "Success"
+  	((i+=${#intel[@]})); 
+  else
+    echo "Error: Manufacturer ID not supported" 
+  	return 1; 
+  fi
   local digest
   digest=(${DISCOVERY_OUTPUT[@]:$i:32}); ((i+=32))
   log_debug_array digest ${digest[@]}
 }
+
+write_clear_tpm() {
+  format_hex_array_with_0x 2e 91
+  format_hex_array_with_0x 57 01 00
+  format_hex_array_with_0x 00 
+  format_hex_array_with_0x 00 00 00
+  format_hex_array_with_0x 01
+  format_hex_array_with_0x 27 00 00 00
+  format_hex_array_with_0x 24 4f 58 50 27 00 20 00 01 28 04 ff 00 00 00
+  format_hex_array_with_0x 00
+  format_hex_array_with_0x 00 00 40 00 00 40 00 00 00 00 00 00 00 00 00
+  format_hex_array_with_0x 00
+  format_hex_array_with_0x 01 07 00 01 80 
+  format_hex_array_with_0x 69 00
+}
+
+write_clear_activate_tpm() {
+  format_hex_array_with_0x 2e 91
+  format_hex_array_with_0x 57 01 00
+  format_hex_array_with_0x 00 
+  format_hex_array_with_0x 00 00 00
+  format_hex_array_with_0x 01
+  format_hex_array_with_0x 27 00 00 00
+  format_hex_array_with_0x 24 4f 58 50 27 00 20 00 01 27 05 ff 00 00 00
+  format_hex_array_with_0x 00
+  format_hex_array_with_0x 00 00 40 00 00 40 00 00 00 00 00 00 00 00 00
+  format_hex_array_with_0x 00
+  format_hex_array_with_0x 01 07 00 01 80 
+  format_hex_array_with_0x 69 00
+}
+
+write_clear_activate_tpm_enable_txt() {
+  format_hex_array_with_0x 2e 91
+  format_hex_array_with_0x 57 01 00
+  format_hex_array_with_0x 00 
+  format_hex_array_with_0x 00 00 00
+  format_hex_array_with_0x 01
+  format_hex_array_with_0x 27 00 00 00
+  format_hex_array_with_0x 24 4f 58 50 27 00 20 00 01 26 06 ff 00 00 00
+  format_hex_array_with_0x 00
+  format_hex_array_with_0x 00 00 40 00 00 40 00 00 00 00 00 00 00 00 00
+  format_hex_array_with_0x 00
+  format_hex_array_with_0x 01 07 00 01 80 
+  format_hex_array_with_0x 69 00
+}
+
+write_enable_txt_ptt() {
+  format_hex_array_with_0x 2e 91
+  format_hex_array_with_0x 57 01 00
+  format_hex_array_with_0x 00 
+  format_hex_array_with_0x 00 00 00
+  format_hex_array_with_0x 01
+  format_hex_array_with_0x 27 00 00 00
+  format_hex_array_with_0x 24 4f 58 50 27 00 20 00 01 29 0b ff 00 00 00
+  format_hex_array_with_0x 00
+  format_hex_array_with_0x 00 00 40 00 00 40 00 00 00 00 00 00 00 00 00
+  format_hex_array_with_0x 00
+  format_hex_array_with_0x 01 07 00 01 80 
+  format_hex_array_with_0x 69 00
+}
+
+write_clear_ptt() {
+  format_hex_array_with_0x 2e 91
+  format_hex_array_with_0x 57 01 00
+  format_hex_array_with_0x 00 
+  format_hex_array_with_0x 00 00 00
+  format_hex_array_with_0x 01
+  format_hex_array_with_0x 27 00 00 00
+  format_hex_array_with_0x 24 4f 58 50 27 00 20 00 01 28 0c ff 00 00 00
+  format_hex_array_with_0x 00
+  format_hex_array_with_0x 00 00 40 00 00 40 00 00 00 00 00 00 00 00 00
+  format_hex_array_with_0x 00
+  format_hex_array_with_0x 01 07 00 01 80 
+  format_hex_array_with_0x 69 00
+}
+
+write_clear_activate_ptt() {
+  format_hex_array_with_0x 2e 91
+  format_hex_array_with_0x 57 01 00
+  format_hex_array_with_0x 00 
+  format_hex_array_with_0x 00 00 00
+  format_hex_array_with_0x 01
+  format_hex_array_with_0x 27 00 00 00
+  format_hex_array_with_0x 24 4f 58 50 27 00 20 00 01 27 0d ff 00 00 00
+  format_hex_array_with_0x 00
+  format_hex_array_with_0x 00 00 40 00 00 40 00 00 00 00 00 00 00 00 00
+  format_hex_array_with_0x 00
+  format_hex_array_with_0x 01 07 00 01 80 
+  format_hex_array_with_0x 69 00
+}
+
+write_clear_activate_ptt_enable_txt() {
+  format_hex_array_with_0x 2e 91
+  format_hex_array_with_0x 57 01 00
+  format_hex_array_with_0x 00 
+  format_hex_array_with_0x 00 00 00
+  format_hex_array_with_0x 01
+  format_hex_array_with_0x 27 00 00 00
+  format_hex_array_with_0x 24 4f 58 50 27 00 20 00 01 26 0e ff 00 00 00
+  format_hex_array_with_0x 00
+  format_hex_array_with_0x 00 00 40 00 00 40 00 00 00 00 00 00 00 00 00
+  format_hex_array_with_0x 00
+  format_hex_array_with_0x 01 07 00 01 80 
+  format_hex_array_with_0x 69 00
+}
+
+
+parse_raw_response() {
+  local hex_array=$@
+  RAW_OUTPUT=($hex_array)
+  local intel=(57 01 00)
+  local i=0
+  if values_required RAW_OUTPUT $i ${intel[@]}; then
+    echo "Success" 
+  	((i+=${#intel[@]})); 
+  else 
+  	echo "Error: Manufacturer ID not supported"
+  	return 1; 
+  fi
+  local digest
+  digest=(${RAW_OUTPUT[@]:$i:32}); ((i+=32))
+  log_debug_array digest ${digest[@]}
+}
+
+
+
 
 # check if there is input from stdin
 # example:  ppix-script discovery < /path/to/test.file
@@ -369,59 +501,56 @@ arg=$1
 shift
 case $arg in
   discovery)
+    #Usecase 1 - TPM/TXT status discovery
     echo "discovery"
     generator=write_discovery
     parser=parse_discovery    
     ;;
   enable-txt-tpm)
+	#Usecase 2 - Enable TXT/ TPM
     echo "enable-txt-tpm"
     generator=write_enable_txt_tpm
     parser=parse_enable_txt_tpm    
     ;;
   clear-tpm)
+	#Usecase 3 - TPM Owner Clear Only
     echo "clear-tpm"
-    #generator=...
-    #parser=...
+    generator=write_clear_tpm
+    parser=parse_raw_response
     ;;
   clear-activate-tpm)
+	#Usecase 4 - TPM clear + TPM Activation
     echo "clear-activate-tpm"
-    #generator=...
-    #parser=...
+    generator=write_clear_activate_tpm
+    parser=parse_raw_response
     ;;
   clear-activate-tpm-enable-txt)
+	#Usecase 5 - TPM clear + TXT/TPM Activation
     echo "clear-activate-tpm-enable-txt"
-    #generator=...
-    #parser=...
-    ;;
-  status-tpm)
-    echo "status-tpm"
-    #generator=...
-    #parser=...
+    generator=write_clear_activate_tpm_enable_txt
+    parser=parse_raw_response
     ;;
   enable-txt-ptt)
+	#Usecase 6 - Enable TXT/PTT
     echo "enable-txt-ptt"
-    #generator=...
-    #parser=...
+    generator=write_enable_txt_ptt
+    parser=parse_raw_response
     ;;
   clear-ptt)
+    #Usecase 7 - PTT  Owner Clear only
     echo "clear-ptt"
-    #generator=...
-    #parser=...
+    generator=write_clear_ptt
+    parser=parse_raw_response
     ;;
   clear-activate-ptt)
     echo "clear-activate-ptt"
-    #generator=...
-    #parser=...
+    generator=write_clear_activate_ptt
+    parser=parse_raw_response
     ;;
   clear-activate-ptt-enable-txt)
     echo "clear-activate-ptt-enable-txt"
-    #generator=...
-    #parser=...
-    ;;
-  disable-txt)
-    echo "disable-txt"
-    #generator=...
-    #parser=...
+    generator=write_clear_activate_ptt_enable_txt
+    parser=parse_raw_response
     ;;
   --)
     IMPITOOL_EXTRA_ARGS=("$@")
