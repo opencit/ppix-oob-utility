@@ -11,18 +11,30 @@ IPMITOOL_OUTPUT_TEXT=
 declare -a IMPITOOL_EXTRA_ARGS
 
 help_usage() {
-  echo '
-Run ipmitool command and parse output:
-    ppix-script args
-Skip ipmitool command and parse predefined output:
-    ppix-script args < /path/to/output
-'
-}
 
-if [[ $# -eq 0 ]]; then
-  help_usage
-  return 1
-fi
+  echo -e '
+\e[1mUSAGE:\e[0m
+\e[0m      ./ppix-script \e[4mCOMMAND\e[0m -- "-H \e[4mBMC_ADDRESS\e[0m  -U \e[4mBMC_USERNAME\e[0m  -P \e[4mBMC_PASSWORD\e[0m" 
+
+\e[1mCOMMANDS:\e[0m
+
+            discovery                       Determines the status of TXT and dTPM features.
+            enable-txt-dtpm                 Enables TXT and dTPM. 
+            clear-dtpm                      Clears dTPM ownership. TPM 1.2 is disabled afterwards. 
+            clear-activate-dtpm             Clears dTPM ownership. TPM 1.2 is enabled afterwards. TPM 2.0 is always enabled.
+            clear-activate-dtpm-enable-txt  Full Refresh for TXT/dTPM: clears ownership, enables dTPM and enables TXT
+            enable-txt-ptt                  Enables TXT and PTT
+            clear-ptt                       Clears PTT ownership.
+            clear-activate-ptt              Clears PTT ownership. PTT is enabled
+            clear-activate-ptt-enable-txt   Full Refresh for TXT/PTT: clears ownership, enables PTT and enables TXT
+
+'
+#Run ipmitool command and parse output:
+#   ppix-script args
+#Skip ipmitool command and parse predefined output:
+#    ppix-script args < /path/to/output
+#'
+}
 
 # precondition:
 # * a file exists with space-separated values content
@@ -201,13 +213,17 @@ run_impitool() {
   local generator=$1
   local parser=$2
   local ipmitool_args=$($generator)
-  echo ipmitool $IMPITOOL_EXTRA_ARGS -b 0x06 -t 0x2c raw $ipmitool_args
   if [ "$RUN_IPMITOOL" == "yes" ]; then
     local ipmitool_found=$(which ipmitool)
     if [ -z "$ipmitool_found" ]; then
       log_error "ipmitool not found"
       return 1
     fi
+    IMPITOOL_EXTRA_ARGS=$IMPITOOL_EXTRA_ARGS$" -I lanplus"
+    echo "Ipmitool Raw Request:"
+    echo ""
+    echo ipmitool $IMPITOOL_EXTRA_ARGS -b 0x06 -t 0x2c raw $ipmitool_args
+    echo ""
     ipmitool $IMPITOOL_EXTRA_ARGS -b 0x06 -t 0x2c raw $ipmitool_args > $IPMITOOL_OUTPUT_FILE    
   fi
   # ipmitool output is space-separated hex values
@@ -216,6 +232,11 @@ run_impitool() {
   else
     read_ssv_from_file_into_array $IPMITOOL_OUTPUT_FILE IPMITOOL_OUTPUT_HEX
   fi
+  echo ""
+  echo "Raw Response:"
+  echo ""
+  echo ${IPMITOOL_OUTPUT_HEX[@]}
+  echo ""
   $parser ${IPMITOOL_OUTPUT_HEX[@]}
 }
 
@@ -261,14 +282,49 @@ parse_discovery() {
   #local state=(00 00 02 00)
   local state
   local i=0
-  if values_required DISCOVERY_OUTPUT $i ${intel[@]}; then ((i+=${#intel[@]})); else return 1; fi
-  if values_required DISCOVERY_OUTPUT $i ${signature[@]}; then ((i+=${#signature[@]})); else return 1; fi
-  if values_required DISCOVERY_OUTPUT $i ${total_length[@]}; then ((i+=${#total_length[@]})); else return 1; fi
-  if values_required DISCOVERY_OUTPUT $i ${header_length[@]}; then ((i+=${#header_length[@]})); else return 1; fi
-  if values_required DISCOVERY_OUTPUT $i ${version[@]}; then ((i+=${#version[@]})); else return 1; fi
+  if values_required DISCOVERY_OUTPUT $i ${intel[@]}; then 
+  	echo "Intel Manufacturer ID: Confirmed "${intel[@]}
+  	((i+=${#intel[@]})); 
+  else
+    echo "Error. Manufacturer ID not supported" 
+  	return 1; 
+  fi
+
+  #if values_required DISCOVERY_OUTPUT $i ${signature[@]}; then ((i+=${#signature[@]})); else return 1; fi
+  signature=${DISCOVERY_OUTPUT[@]:$i:4}; ((i+=4))
+  echo "Signature: "$signature
+
+  if values_required DISCOVERY_OUTPUT $i ${total_length[@]}; then 
+  	echo "Total Length(Decimal): "$((16#$total_length))
+  	((i+=${#total_length[@]})); 
+  else 
+  	echo "Error. Total Length mismatch"
+  	return 1; 
+  fi
+
+  if values_required DISCOVERY_OUTPUT $i ${header_length[@]}; then 
+  	echo "Header Length(Decimal): "$((16#$header_length))
+  	((i+=${#header_length[@]})); 
+  else 
+  	echo "Error. Header Length mismatch"
+  	return 1; 
+  fi
+  if values_required DISCOVERY_OUTPUT $i ${version[@]}; then 
+  	echo "Version: "$version
+  	((i+=${#version[@]})); 
+  else 
+  	echo "Error. Version mismatch"
+  	return 1; 
+  fi
+
   checksum=${DISCOVERY_OUTPUT[$i]}; ((i+=1))
+  echo "Checksum (Decimal): "$((16#$checksum))
+
   task_and_result=${DISCOVERY_OUTPUT[$i]}; ((i+=1))
+  echo "Task and Result: "$task_and_result
+
   status=${DISCOVERY_OUTPUT[$i]}; ((i+=1))
+  echo "Status: "$status
   #if values_required DISCOVERY_OUTPUT $i ${password_attribute[@]}; then ((i+=${#password_attribute[@]})); else return 1; fi
   
   #echo ${DISCOVERY_OUTPUT[@]:$i:2}
@@ -285,41 +341,44 @@ parse_discovery() {
 
   #get_features_supported ${feature_enabled[0]}
   local result_supported=$(get_features_supported ${feature_supported[0]})
+  echo   "TPM/TXT Support Status: "$result_supported
   case $result_supported in
   11)
-    echo "dTPM, fTPM is supported"    
+    echo "                        dTPM, fTPM is supported"    
     ;;
   10)
-    echo "fTPM is supported"
+    echo "                        fTPM is supported"
     ;;
   1|01)
-    echo "dTPM is supported"
+    echo "                        dTPM is supported"
     ;;
   0|00)
-    echo "TPM is NOT supported"
+    echo "                        TPM is NOT supported"
   esac
 
-  if is_hex_bit_set ${feature_supported[0]} 0; then echo "TXT is supported"; else echo "TXT is NOT supported"; fi
+  if is_hex_bit_set ${feature_supported[0]} 0; then echo "                        TXT is supported"; else echo "                        TXT is NOT supported"; fi
   #if is_hex_bit_set ${feature_supported[0]} 1; then echo "TPM is supported"; else echo "TPM is not supported"; fi
   #if is_hex_bit_set ${feature_supported[0]} 2; then echo "PTT is supported"; else echo "PTT is not supported"; fi
 
 
   local result_enabled=$(get_features_supported ${feature_enabled[0]})
+  echo   "TPM/TXT Enabled Status: "$result_enabled
   case $result_enabled in
   11)
-    echo "Invalid configuration: dTPM and fTPM cannot be enabled concurrently"    
+    echo "                       Invalid configuration: dTPM and fTPM cannot be enabled concurrently"    
     ;;
   10)
-    echo "fTPM is enabled"
+    echo "                       fTPM is enabled"
     ;;
   1|01)
-    echo "dTPM is enabled"
+    echo "                       dTPM is enabled"
     ;;
   0|00)
-    echo "TPM is NOT enabled"
+    echo "                       TPM is NOT enabled"
   esac
 
-  if is_hex_bit_set ${feature_enabled[0]} 0; then echo "TXT is enabled"; else echo "TXT is NOT enabled"; fi
+  if is_hex_bit_set ${feature_enabled[0]} 0; then echo "                       TXT is enabled"; else echo "                       TXT is NOT enabled"; fi
+  echo ""
   #if is_hex_bit_set ${feature_enabled[0]} 1; then echo "TPM is enabled"; tpm_enabled="yes"; else echo "TPM is not enabled"; fi
   #if is_hex_bit_set ${feature_enabled[0]} 2; then echo "PTT is enabled"; ptt_enabled="yes"; else echo "PTT is not enabled"; fi
   #if [ "$tpm_enabled" == "yes" ] && [ "$ptt_enabled" == "yes" ]; then
@@ -506,25 +565,25 @@ case $arg in
     generator=write_discovery
     parser=parse_discovery    
     ;;
-  enable-txt-tpm)
+  enable-txt-dtpm)
 	#Usecase 2 - Enable TXT/ TPM
     echo "enable-txt-tpm"
     generator=write_enable_txt_tpm
     parser=parse_enable_txt_tpm    
     ;;
-  clear-tpm)
+  clear-dtpm)
 	#Usecase 3 - TPM Owner Clear Only
     echo "clear-tpm"
     generator=write_clear_tpm
     parser=parse_raw_response
     ;;
-  clear-activate-tpm)
+  clear-activate-dtpm)
 	#Usecase 4 - TPM clear + TPM Activation
     echo "clear-activate-tpm"
     generator=write_clear_activate_tpm
     parser=parse_raw_response
     ;;
-  clear-activate-tpm-enable-txt)
+  clear-activate-dtpm-enable-txt)
 	#Usecase 5 - TPM clear + TXT/TPM Activation
     echo "clear-activate-tpm-enable-txt"
     generator=write_clear_activate_tpm_enable_txt
@@ -564,4 +623,18 @@ esac
 
 done
 
-run_impitool $generator $parser
+if [ "$IPMITOOL_OUTPUT_STDIN" == "no" ]; then
+  if [ ! -z "$generator" ] && [ ! -z "$parser" ] && [ ! -z "$IMPITOOL_EXTRA_ARGS" ]; then
+    run_impitool $generator $parser
+  else
+    help_usage
+    exit 1
+  fi
+else
+	if [ ! -z "$generator" ] && [ ! -z "$parser" ] && [ ! -t 0 ]; then
+	  run_impitool $generator $parser
+	else
+	  help_usage
+	  exit 1
+	fi
+fi
