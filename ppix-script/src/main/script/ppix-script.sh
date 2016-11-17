@@ -14,7 +14,7 @@ help_usage() {
 
   echo -e '
 \e[1mUSAGE:\e[0m
-\e[0m      ./ppix-script \e[4mCOMMAND\e[0m -- "-H \e[4mBMC_ADDRESS\e[0m  -U \e[4mBMC_USERNAME\e[0m  -P \e[4mBMC_PASSWORD\e[0m" 
+\e[0m      ./ppix-script \e[4mCOMMAND\e[0m -H <\e[4mBMC_IPADDRESS\e[0m> -U <\e[4mBMC_USERNAME\e[0m> -P [\e[4mBMC_PASSWORD\e[0m] 
 
 \e[1mCOMMANDS:\e[0m
 
@@ -27,6 +27,12 @@ help_usage() {
             clear-ptt                       Clears PTT ownership.
             clear-activate-ptt              Clears PTT ownership. PTT is enabled
             clear-activate-ptt-enable-txt   Full Refresh for TXT/PTT: clears ownership, enables PTT and enables TXT
+
+\e[1mOPTIONS:\e[0m
+
+            -H BMC_IPADDRESS              A valid BMC IP address. This is required
+            -U BMC_USERNAME               Username is required
+            -P BMC_PASSWORD               Password is optional. If not explicitly declared user will be prompted to provide it
 
 '
 #Run ipmitool command and parse output:
@@ -212,6 +218,12 @@ format_hex_array_with_0x() {
 run_impitool() {
   local generator=$1
   local parser=$2
+  local bmcipaddress=$3
+  local username=$4
+  local password=$5
+  #echo "run_ipmitool:"$bmcipaddress
+  #echo "run_ipmitool:"$username
+  #echo "run_ipmitool:"$password
   local ipmitool_args=$($generator)
   if [ "$RUN_IPMITOOL" == "yes" ]; then
     local ipmitool_found=$(which ipmitool)
@@ -219,13 +231,24 @@ run_impitool() {
       log_error "ipmitool not found"
       return 1
     fi
-    IMPITOOL_EXTRA_ARGS=$IMPITOOL_EXTRA_ARGS$" -I lanplus"
-    echo "Ipmitool Raw Request:"
-    echo ""
-    echo ipmitool $IMPITOOL_EXTRA_ARGS -b 0x06 -t 0x2c raw $ipmitool_args
-    echo ""
-    ipmitool $IMPITOOL_EXTRA_ARGS -b 0x06 -t 0x2c raw $ipmitool_args > $IPMITOOL_OUTPUT_FILE    
+    #IMPITOOL_EXTRA_ARGS=$IMPITOOL_EXTRA_ARGS$" -I lanplus"
+    #ipmitool $IMPITOOL_EXTRA_ARGS -b 0x06 -t 0x2c raw $ipmitool_args > $IPMITOOL_OUTPUT_FILE    
+
+    local ipmi_args=$" -I lanplus -H "$bmcipaddress$" -U "$username
+
+    if [ ! -z "$password" ]; then
+    	ipmi_args=$ipmi_args$" -P "$password
+    fi
+
+    ipmitool $ipmi_args -b 0x06 -t 0x2c raw $ipmitool_args > $IPMITOOL_OUTPUT_FILE
+    
   fi
+  echo "Raw Request:"
+  echo ""
+  #echo ipmitool $IMPITOOL_EXTRA_ARGS -b 0x06 -t 0x2c raw $ipmitool_args
+  echo $ipmitool_args
+  echo ""
+
   # ipmitool output is space-separated hex values
   if [ "$IPMITOOL_OUTPUT_STDIN" == "yes" ]; then
     read_ssv_from_stdin_into_array IPMITOOL_OUTPUT_HEX
@@ -266,6 +289,8 @@ write_discovery() {
 # example:  parse_discovery 57 01 00 24 4f 58 50 20 00 20 00 01 79 80 01 03 80 23 00 02 00 00 00 02 00 00 00 00 00 00 00 00 00 00 00
 parse_discovery() {
   local hex_array=$@
+  #echo "hex_array"
+  #echo ${hex_array}
   DISCOVERY_OUTPUT=($hex_array)
   local intel=(57 01 00)
   local signature=(24 4f 58 50)
@@ -392,14 +417,10 @@ write_enable_txt_tpm() {
   format_hex_array_with_0x 00
   format_hex_array_with_0x 00 00 00
   format_hex_array_with_0x 01
-  format_hex_array_with_0x 27 00 00 00
+  format_hex_array_with_0x 20 00 00 00
 
-  format_hex_array_with_0x 24 4f 58 50 27 00 20 00 01
-  format_hex_array_with_0x 29 03 ff
-  format_hex_array_with_0x 00 00 00 00
-  format_hex_array_with_0x 00 00 40 00 00 40 00 00 00 00 00 00 00 00 00 00
-  format_hex_array_with_0x 01 07 00 01 80
-  format_hex_array_with_0x 69 00
+  format_hex_array_with_0x 24 4f 58 50 20 00 20 00 01 a2 03 ff 00 00 00 00
+  format_hex_array_with_0x 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
 }
 
 parse_enable_txt_tpm() {
@@ -422,106 +443,85 @@ parse_enable_txt_tpm() {
 write_clear_tpm() {
   format_hex_array_with_0x 2e 91
   format_hex_array_with_0x 57 01 00
-  format_hex_array_with_0x 00 
+  format_hex_array_with_0x 00
   format_hex_array_with_0x 00 00 00
   format_hex_array_with_0x 01
-  format_hex_array_with_0x 27 00 00 00
-  format_hex_array_with_0x 24 4f 58 50 27 00 20 00 01 28 04 ff 00 00 00
-  format_hex_array_with_0x 00
-  format_hex_array_with_0x 00 00 40 00 00 40 00 00 00 00 00 00 00 00 00
-  format_hex_array_with_0x 00
-  format_hex_array_with_0x 01 07 00 01 80 
-  format_hex_array_with_0x 69 00
+  format_hex_array_with_0x 20 00 00 00
+
+  format_hex_array_with_0x 24 4f 58 50 20 00 20 00 01 a1 04 ff 00 00 00 00
+  format_hex_array_with_0x 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
 }
 
 write_clear_activate_tpm() {
   format_hex_array_with_0x 2e 91
   format_hex_array_with_0x 57 01 00
-  format_hex_array_with_0x 00 
+  format_hex_array_with_0x 00
   format_hex_array_with_0x 00 00 00
   format_hex_array_with_0x 01
-  format_hex_array_with_0x 27 00 00 00
-  format_hex_array_with_0x 24 4f 58 50 27 00 20 00 01 27 05 ff 00 00 00
-  format_hex_array_with_0x 00
-  format_hex_array_with_0x 00 00 40 00 00 40 00 00 00 00 00 00 00 00 00
-  format_hex_array_with_0x 00
-  format_hex_array_with_0x 01 07 00 01 80 
-  format_hex_array_with_0x 69 00
+  format_hex_array_with_0x 20 00 00 00
+
+  format_hex_array_with_0x 24 4f 58 50 20 00 20 00 01 a0 05 ff 00 00 00 00
+  format_hex_array_with_0x 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
 }
 
 write_clear_activate_tpm_enable_txt() {
   format_hex_array_with_0x 2e 91
   format_hex_array_with_0x 57 01 00
-  format_hex_array_with_0x 00 
+  format_hex_array_with_0x 00
   format_hex_array_with_0x 00 00 00
   format_hex_array_with_0x 01
-  format_hex_array_with_0x 27 00 00 00
-  format_hex_array_with_0x 24 4f 58 50 27 00 20 00 01 26 06 ff 00 00 00
-  format_hex_array_with_0x 00
-  format_hex_array_with_0x 00 00 40 00 00 40 00 00 00 00 00 00 00 00 00
-  format_hex_array_with_0x 00
-  format_hex_array_with_0x 01 07 00 01 80 
-  format_hex_array_with_0x 69 00
+  format_hex_array_with_0x 20 00 00 00
+
+  format_hex_array_with_0x 24 4f 58 50 20 00 20 00 01 9f 06 ff 00 00 00 00
+  format_hex_array_with_0x 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
 }
 
 write_enable_txt_ptt() {
   format_hex_array_with_0x 2e 91
   format_hex_array_with_0x 57 01 00
-  format_hex_array_with_0x 00 
+  format_hex_array_with_0x 00
   format_hex_array_with_0x 00 00 00
   format_hex_array_with_0x 01
-  format_hex_array_with_0x 27 00 00 00
-  format_hex_array_with_0x 24 4f 58 50 27 00 20 00 01 29 0b ff 00 00 00
-  format_hex_array_with_0x 00
-  format_hex_array_with_0x 00 00 40 00 00 40 00 00 00 00 00 00 00 00 00
-  format_hex_array_with_0x 00
-  format_hex_array_with_0x 01 07 00 01 80 
-  format_hex_array_with_0x 69 00
+  format_hex_array_with_0x 20 00 00 00
+
+  format_hex_array_with_0x 24 4f 58 50 20 00 20 00 01 9A 0b ff 00 00 00 00
+  format_hex_array_with_0x 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
 }
 
 write_clear_ptt() {
   format_hex_array_with_0x 2e 91
   format_hex_array_with_0x 57 01 00
-  format_hex_array_with_0x 00 
+  format_hex_array_with_0x 00
   format_hex_array_with_0x 00 00 00
   format_hex_array_with_0x 01
-  format_hex_array_with_0x 27 00 00 00
-  format_hex_array_with_0x 24 4f 58 50 27 00 20 00 01 28 0c ff 00 00 00
-  format_hex_array_with_0x 00
-  format_hex_array_with_0x 00 00 40 00 00 40 00 00 00 00 00 00 00 00 00
-  format_hex_array_with_0x 00
-  format_hex_array_with_0x 01 07 00 01 80 
-  format_hex_array_with_0x 69 00
+  format_hex_array_with_0x 20 00 00 00
+
+  format_hex_array_with_0x 24 4f 58 50 20 00 20 00 01 99 0c ff 00 00 00 00
+  format_hex_array_with_0x 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
 }
 
 write_clear_activate_ptt() {
   format_hex_array_with_0x 2e 91
   format_hex_array_with_0x 57 01 00
-  format_hex_array_with_0x 00 
+  format_hex_array_with_0x 00
   format_hex_array_with_0x 00 00 00
   format_hex_array_with_0x 01
-  format_hex_array_with_0x 27 00 00 00
-  format_hex_array_with_0x 24 4f 58 50 27 00 20 00 01 27 0d ff 00 00 00
-  format_hex_array_with_0x 00
-  format_hex_array_with_0x 00 00 40 00 00 40 00 00 00 00 00 00 00 00 00
-  format_hex_array_with_0x 00
-  format_hex_array_with_0x 01 07 00 01 80 
-  format_hex_array_with_0x 69 00
+  format_hex_array_with_0x 20 00 00 00
+
+  format_hex_array_with_0x 24 4f 58 50 20 00 20 00 01 98 0d ff 00 00 00 00
+  format_hex_array_with_0x 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
 }
 
 write_clear_activate_ptt_enable_txt() {
   format_hex_array_with_0x 2e 91
   format_hex_array_with_0x 57 01 00
-  format_hex_array_with_0x 00 
+  format_hex_array_with_0x 00
   format_hex_array_with_0x 00 00 00
   format_hex_array_with_0x 01
-  format_hex_array_with_0x 27 00 00 00
-  format_hex_array_with_0x 24 4f 58 50 27 00 20 00 01 26 0e ff 00 00 00
-  format_hex_array_with_0x 00
-  format_hex_array_with_0x 00 00 40 00 00 40 00 00 00 00 00 00 00 00 00
-  format_hex_array_with_0x 00
-  format_hex_array_with_0x 01 07 00 01 80 
-  format_hex_array_with_0x 69 00
+  format_hex_array_with_0x 20 00 00 00
+
+  format_hex_array_with_0x 24 4f 58 50 20 00 20 00 01 97 0e ff 00 00 00 00
+  format_hex_array_with_0x 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
 }
 
 
@@ -611,10 +611,22 @@ case $arg in
     generator=write_clear_activate_ptt_enable_txt
     parser=parse_raw_response
     ;;
-  --)
-    IMPITOOL_EXTRA_ARGS=("$@")
-    break
+  -H)
+    bmcipaddress=$1
+    shift
     ;;
+  -U)
+    username=$1
+    shift
+    ;;
+  -P)
+    password=$1
+    shift
+    ;;
+  #--)
+  #  IMPITOOL_EXTRA_ARGS=("$@")
+  #  break
+  #  ;;
   *)
     help_usage
     exit 1
@@ -624,8 +636,10 @@ esac
 done
 
 if [ "$IPMITOOL_OUTPUT_STDIN" == "no" ]; then
-  if [ ! -z "$generator" ] && [ ! -z "$parser" ] && [ ! -z "$IMPITOOL_EXTRA_ARGS" ]; then
-    run_impitool $generator $parser
+  #if [ ! -z "$generator" ] && [ ! -z "$parser" ] && [ ! -z "$IMPITOOL_EXTRA_ARGS" ]; then
+  if [ ! -z "$generator" ] && [ ! -z "$parser" ] && [ ! -z "$bmcipaddress" ] && [ ! -z "$username" ]; then
+    #run_impitool $generator $parser
+    run_impitool $generator $parser $bmcipaddress $username $password
   else
     help_usage
     exit 1
