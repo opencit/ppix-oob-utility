@@ -429,7 +429,7 @@ parse_enable_txt_tpm() {
   local intel=(57 01 00)
   local i=0
   if values_required DISCOVERY_OUTPUT $i ${intel[@]}; then 
-  	echo "Success"
+  	echo "Command execution is success"
   	((i+=${#intel[@]})); 
   else
     echo "Error: Manufacturer ID not supported" 
@@ -531,7 +531,7 @@ parse_raw_response() {
   local intel=(57 01 00)
   local i=0
   if values_required RAW_OUTPUT $i ${intel[@]}; then
-    echo "Success" 
+    echo "Command execution is success" 
   	((i+=${#intel[@]})); 
   else 
   	echo "Error: Manufacturer ID not supported"
