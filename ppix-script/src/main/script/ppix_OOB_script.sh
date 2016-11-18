@@ -11,8 +11,10 @@ IPMITOOL_OUTPUT_STDIN=no
 help_usage() {
 
   echo -e '
+\e[1mVERSION:\e[0m 1.0
+
 \e[1mUSAGE:\e[0m
-\e[0m      ./ppix-script \e[4mCOMMAND\e[0m -H <\e[4mBMC_IPADDRESS\e[0m> -U <\e[4mBMC_USERNAME\e[0m> -P [\e[4mBMC_PASSWORD\e[0m] 
+\e[0m        ./ppix-script \e[4mCOMMAND\e[0m -H <\e[4mBMC_IPADDRESS\e[0m> -U <\e[4mBMC_USERNAME\e[0m> -P [\e[4mBMC_PASSWORD\e[0m] 
 
 \e[1mCOMMANDS:\e[0m
 
