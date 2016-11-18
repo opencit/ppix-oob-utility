@@ -28,9 +28,9 @@ help_usage() {
 
 \e[1mOPTIONS:\e[0m
 
-            -H BMC_IPADDRESS              A valid BMC IP address. This is required
-            -U BMC_USERNAME               Username is required
-            -P BMC_PASSWORD               Password is optional. If not explicitly declared user will be prompted to provide it
+           -H BMC_IPADDRESS                 A valid BMC IP address. This is required
+           -U BMC_USERNAME                  Username is required
+           -P BMC_PASSWORD                  Password is optional. If not explicitly declared user will be prompted to provide it
 
 '
 #Run ipmitool command and parse output:
