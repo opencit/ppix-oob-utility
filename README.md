@@ -40,4 +40,4 @@ PPIx OOB Utility is  extension script to open source IPMITOOl which allows syste
 
 For example, to run discovery:
 
-	ppix_OOB_script discovery -H 10.23.5.31 -U username -P password
+	ppix_OOB_script discovery -H "BMC IP address" -U username -P password
