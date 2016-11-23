@@ -27,6 +27,9 @@ help_usage() {
             clear-ptt                       Clears PTT ownership.
             clear-activate-ptt              Clears PTT ownership. PTT is enabled
             clear-activate-ptt-enable-txt   Full Refresh for TXT/PTT: clears ownership, enables PTT and enables TXT
+            disable-txt                     Disables TXT only
+            disable-dtpm                    Disables dTPM only. This will not disable TXT
+            disable-ptt                     Disables PTT
 
 \e[1mOPTIONS:\e[0m
 
@@ -491,6 +494,42 @@ write_clear_activate_ptt_enable_txt() {
   format_hex_array_with_0x 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
 }
 
+write_disable_txt() {
+  format_hex_array_with_0x 2e 91
+  format_hex_array_with_0x 57 01 00
+  format_hex_array_with_0x 00
+  format_hex_array_with_0x 00 00 00
+  format_hex_array_with_0x 01
+  format_hex_array_with_0x 20 00 00 00
+
+  format_hex_array_with_0x 24 4f 58 50 20 00 20 00 01 96 0f ff 00 00 00 00
+  format_hex_array_with_0x 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+}
+
+write_disable_dtpm() {
+  format_hex_array_with_0x 2e 91
+  format_hex_array_with_0x 57 01 00
+  format_hex_array_with_0x 00
+  format_hex_array_with_0x 00 00 00
+  format_hex_array_with_0x 01
+  format_hex_array_with_0x 20 00 00 00
+
+  format_hex_array_with_0x 24 4f 58 50 20 00 20 00 01 95 10 ff 00 00 00 00
+  format_hex_array_with_0x 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+}
+
+write_disable_ptt() {
+  format_hex_array_with_0x 2e 91
+  format_hex_array_with_0x 57 01 00
+  format_hex_array_with_0x 00
+  format_hex_array_with_0x 00 00 00
+  format_hex_array_with_0x 01
+  format_hex_array_with_0x 20 00 00 00
+
+  format_hex_array_with_0x 24 4f 58 50 20 00 20 00 01 94 11 ff 00 00 00 00
+  format_hex_array_with_0x 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+}
+
 
 parse_raw_response() {
   local hex_array=$*
@@ -576,6 +615,21 @@ case $arg in
   clear-activate-ptt-enable-txt)
     echo "clear-activate-ptt-enable-txt"
     generator=write_clear_activate_ptt_enable_txt
+    parser=parse_raw_response
+    ;;
+  disable-txt)
+    echo "disable-txt"
+    generator=write_disable_txt
+    parser=parse_raw_response
+    ;;
+  disable-dtpm)
+    echo "disable-dtpm"
+    generator=write_disable_dtpm
+    parser=parse_raw_response
+    ;;
+  disable-ptt)
+    echo "disable-ptt"
+    generator=write_disable_ptt
     parser=parse_raw_response
     ;;
   -H)
