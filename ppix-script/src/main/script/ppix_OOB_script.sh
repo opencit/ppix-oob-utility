@@ -67,14 +67,17 @@ read_ssv_from_stdin_into_array() {
   eval "$varname=($text)"
 }
 
-#
+# usage: get_features_supported (hex-values) array
+# return: a string indicating the two least significant bits combination: 00, 01, 10 or 11
+# example with hexadecimal value = 0x0200:
+#          1. Convert it to little endian = 0x0002
+#          2. Convert to binary      = 0000 0000 0000 0010
+#          3. Make 1 bit right shift = 0000 0000 0000 0001 
+#          3. Return two lsb bits    = "01"
 # input parameters: $1 - first hex number
 #                   $2 - second hex number
 get_features_supported() {
   local hex=$1$2
-  #echo "hex: $hex"
-  #local hex=$1$2$3$4
-  #local hex=0100
 
   # Convert to little endian, example: hex=034f, little endian = 4f03
   local hex_le
@@ -85,21 +88,17 @@ get_features_supported() {
   	i=$((i-2))
   	hex_le+=${hex:$i:2}
   done
-  #echo "little_endian:"$hex_le
   
   # Once we have converted to little endian we parse the hex to decimal
   local dec=$((16#$hex_le))
-  #echo "dec:"$dec
 
   # We apply a right shift on the least significant bit to eliminate it. 
   # We only care about the second and third least significan bits
   local rs=$((dec>>1))
-  #echo "rs:"$rs
 
   # We convert to binary
   local binary
   binary=$(echo "obase=2;$rs" | bc)
-  #echo "binary:"$binary
 
   local j=${#binary}
   if [[ $j == 1 ]]; then
@@ -122,7 +121,6 @@ get_features_supported() {
 #                   $3 - bit position 
 is_hex_bit_set() {
   local hex=$1$2
-  #echo "hex:"$hex
   
   # Convert to little endian, example: hex=034f, little endian = 4f03
   local hex_le
@@ -141,7 +139,6 @@ is_hex_bit_set() {
   local mask=$((1<<bitnum))
   # check bit: if set, result will be equal to mask; if not set, result will be zero
   local result=$((dec & mask))
-  #echo "result:"$result
   if [ $result -eq 0 ]; then return 1; fi
   return 0
 }
@@ -153,22 +150,15 @@ is_hex_bit_set() {
 #          if expect_values myarray 1 b c; then echo "ok"; fi 
 values_present() {
   local array_name=$1
-  #echo "array_name 2: $array_name"
   local array_offset=$2
-  #echo "array_offset 2: $array_offset"
-  #local expected_values=${@:3}
   local expected_values=(${*:3})
-  #echo "expected_values 2: ${expected_values[@]}"
   local actual_values
   eval actual_values=\( "\${$array_name[@]}" \)
-  #actual_values=(${@:1})
-  #echo "actual_values ${actual_values[@]}"
   local actual  
   local expected
   for expected in "${expected_values[@]}"
   do
     actual=${actual_values[$array_offset]}
-    #echo "expected: $expected   vs   actual: $actual"
     if [ "$expected" != "$actual" ]; then
       return 1
     fi
@@ -179,12 +169,8 @@ values_present() {
 
 values_required() {
   local array_name=$1
-  #echo "array_name: $array_name"
   local array_offset=$2
-  #echo "array_offset: $array_offset"
-  #local expected_values=${@:3}
   local expected_values=(${*:3})
-  #echo "expected_values: ${expected_values[@]}"
   if values_present "$array_name" "$array_offset" "${expected_values[@]}"; then
     return 0
   fi
@@ -220,9 +206,6 @@ run_impitool() {
   local bmcipaddress=$3
   local username=$4
   local password=$5
-  #echo "run_ipmitool:"$bmcipaddress
-  #echo "run_ipmitool:"$username
-  #echo "run_ipmitool:"$password
   local ipmitool_args
   ipmitool_args=$($generator)
   if [ "$RUN_IPMITOOL" == "yes" ]; then
@@ -263,16 +246,13 @@ run_impitool() {
 
 log_debug_array() {
   local array_name=$1
-  #local array_values=${@:2}
   local array_values=${*:2}
   if [[ $VERBOSE -gt 0 ]]; then
-    #echo "[DEBUG] array '$array_name': ${array_values[@]}"
     echo "[DEBUG] array '$array_name': ${array_values[*]}"
   fi
 }
 
 log_error() {
-  #local message="$@"
   local message="$*"
   local TERM_COLOR_RED="\\033[1;31m"
   local TERM_COLOR_NORMAL="\\033[0;39m"
@@ -290,8 +270,6 @@ write_discovery() {
 # example:  parse_discovery 57 01 00 24 4f 58 50 20 00 20 00 01 79 80 01 03 80 23 00 02 00 00 00 02 00 00 00 00 00 00 00 00 00 00 00
 parse_discovery() {
   local hex_array=$*
-  #echo "hex_array"
-  #echo ${hex_array}
   DISCOVERY_OUTPUT=($hex_array)
   local intel=(57 01 00)
   local signature=(24 4f 58 50)
@@ -301,18 +279,15 @@ parse_discovery() {
   local checksum
   local task_and_result
   local status
-  #local password_attribute=(03 80)
   local password_attribute
   local feature_supported
   local feature_enabled
-  #local state=(00 00 02 00)
   local state
   local i=0
   if values_required DISCOVERY_OUTPUT $i "${intel[@]}"; then 
   	echo "Intel Manufacturer ID: Confirmed ${intel[*]}"
   	((i+=${#intel[@]})); 
   else
-    #echo "Error. Manufacturer ID not supported" 
     log_error "Error"
   	return 1; 
   fi
@@ -325,7 +300,6 @@ parse_discovery() {
   	echo "Total Length(Decimal): $((16#${total_length[*]:0:1}))"
   	((i+=${#total_length[@]})); 
   else 
-  	#echo "Error. Total Length mismatch"
   	log_error "Error"
   	return 1; 
   fi
@@ -334,7 +308,6 @@ parse_discovery() {
   	echo "Header Length(Decimal): $((16#${header_length[*]:0:1}))"
   	((i+=${#header_length[@]})); 
   else 
-  	#echo "Error. Header Length mismatch"
   	log_error "Error"
   	return 1; 
   fi
@@ -342,7 +315,6 @@ parse_discovery() {
   	echo "Version: ${version[*]}"
   	((i+=${#version[@]})); 
   else 
-  	#echo "Error. Version mismatch"
   	log_error "Error"
   	return 1; 
   fi
@@ -355,21 +327,14 @@ parse_discovery() {
 
   status=${DISCOVERY_OUTPUT[$i]}; ((i+=1))
   echo "Status: $status"
-  #if values_required DISCOVERY_OUTPUT $i ${password_attribute[@]}; then ((i+=${#password_attribute[@]})); else return 1; fi
-  
-  #echo ${DISCOVERY_OUTPUT[@]:$i:2}
 
   password_attribute=${DISCOVERY_OUTPUT[*]:$i:2}; ((i+=2))
-  echo "Password attribute: $password_attribute"
   feature_supported=${DISCOVERY_OUTPUT[*]:$i:2}; ((i+=2))
   feature_enabled=${DISCOVERY_OUTPUT[*]:$i:2}; ((i+=2))
-  #if values_required DISCOVERY_OUTPUT $i ${state[@]}; then ((i+=${#state[@]})); else return 1; fi  
   state=${DISCOVERY_OUTPUT[*]:$i:4}; ((i+=4))
   echo "State: $state"
   log_debug_array feature_supported "${feature_supported[@]}"
   log_debug_array feature_enabled "${feature_enabled[@]}"
-  #local tpm_enabled="no"
-  #local ptt_enabled="no"
 
   local result_supported
   result_supported=$(get_features_supported ${feature_supported[@]})
@@ -390,8 +355,6 @@ parse_discovery() {
   esac
 
   if is_hex_bit_set ${feature_supported[0]} 0; then echo "                        TXT is supported"; else echo "                        TXT is NOT supported"; fi
-  #if is_hex_bit_set ${feature_supported[0]} 1; then echo "TPM is supported"; else echo "TPM is not supported"; fi
-  #if is_hex_bit_set ${feature_supported[0]} 2; then echo "PTT is supported"; else echo "PTT is not supported"; fi
 
 
   local result_enabled
@@ -413,11 +376,6 @@ parse_discovery() {
 
   if is_hex_bit_set ${feature_enabled[0]} 0; then echo "                       TXT is enabled"; else echo "                       TXT is NOT enabled"; fi
   echo ""
-  #if is_hex_bit_set ${feature_enabled[0]} 1; then echo "TPM is enabled"; tpm_enabled="yes"; else echo "TPM is not enabled"; fi
-  #if is_hex_bit_set ${feature_enabled[0]} 2; then echo "PTT is enabled"; ptt_enabled="yes"; else echo "PTT is not enabled"; fi
-  #if [ "$tpm_enabled" == "yes" ] && [ "$ptt_enabled" == "yes" ]; then
-  #  log_error "invalid configuration: TPM and PTT cannot be enabled concurrently"
-  #fi
 }
 
 write_enable_txt_tpm() {
@@ -433,7 +391,6 @@ write_enable_txt_tpm() {
 }
 
 parse_enable_txt_tpm() {
-  #local hex_array=$@
   local hex_array=$*
   DISCOVERY_OUTPUT=($hex_array)
   local intel=(57 01 00)
@@ -536,7 +493,6 @@ write_clear_activate_ptt_enable_txt() {
 
 
 parse_raw_response() {
-  #local hex_array=$@
   local hex_array=$*
   RAW_OUTPUT=($hex_array)
   local intel=(57 01 00)
@@ -645,7 +601,6 @@ done
 
 if [ "$IPMITOOL_OUTPUT_STDIN" == "no" ]; then
   if [ ! -z "$generator" ] && [ ! -z "$parser" ] && [ ! -z "$bmcipaddress" ] && [ ! -z "$username" ]; then
-    #run_impitool $generator $parser
     run_impitool $generator $parser "$bmcipaddress" "$username" "$password"
   else
     help_usage
