@@ -37,6 +37,9 @@ PPIx OOB Utility is  extension script to open source IPMITOOl which allows syste
             clear-ptt                       Clears PTT ownership.
             clear-activate-ptt              Clears PTT ownership. PTT is enabled
             clear-activate-ptt-enable-txt   Full Refresh for TXT/PTT: clears ownership, enables PTT and enables TXT
+            disable-txt                     Disables TXT only
+            disable-dtpm                    Disables dTPM only. This will not disable TXT
+            disable-ptt                     Disables PTT
 
 For example, to run discovery:
 
