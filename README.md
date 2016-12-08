@@ -1,6 +1,12 @@
 #Physical Presence Interface OOB (PPIx) Utility
 
-PPIx OOB Utility is  extension script to open source IPMITOOl which allows system admin to input the PPIx OOB hex codes in human readable verbose format and decode the response to human readable format.
+PPIx OOB Utility is  extension script to open source IPMITOOL which allows system admin to input the PPIx OOB hex codes in human readable verbose format and decode the response to human readable format.
+
+**Servers supported:**
+
+
+- Intel&reg; Skylake based servers and onwards
+
 
 **Requirements:**
   
@@ -8,6 +14,8 @@ PPIx OOB Utility is  extension script to open source IPMITOOl which allows syste
 
 - Linux VM or host
 - IPMItool (open source BSD license)
+- BMC enabled Intel&reg; Skylake server
+
 
 
 
@@ -15,9 +23,8 @@ PPIx OOB Utility is  extension script to open source IPMITOOl which allows syste
 
 
 
-- 
 
-1. Clone or download the repository from github and execute the following command in your ipmitool enabled VM
+1. Clone or download the repository from github and execute the following command in your IPMItool enabled VM
 
 
 
