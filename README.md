@@ -32,7 +32,7 @@ PPIx OOB Utility is  extension script to open source IPMITOOL which allows syste
 
 
 
-1. Now yo can execute the available commands provided:
+1. Now you can execute the available commands provided:
 
 			
 			discovery						Determines the status of TXT and dTPM features.
@@ -50,4 +50,4 @@ PPIx OOB Utility is  extension script to open source IPMITOOL which allows syste
 
 For example, to run discovery:
 
-	ppix_OOB_script discovery -H "BMC IP address" -U username -P password
+	./ppix_OOB_script.sh discovery -H "BMC IP address" -U username -P password
