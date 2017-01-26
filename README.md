@@ -24,12 +24,19 @@ PPIx OOB Utility is  extension script to open source IPMITOOL which allows syste
 
 
 
-1. Clone or download the repository from github and execute the following command in your IPMItool enabled VM
-
+1. Clone or download the repository from github and execute the following command in your IPMItool enabled VM:
 
 
 	ln -s <your_github_repository_location>/ppix-script/src/main/script/ppix_OOB_script.sh /usr/local/bin/ppix_OOB_script
 
+2. Make sure you have bc package installed:
+	
+	bc -version
+
+	In case this package is missing install it in your VM. For Ubuntu the command is as follows:
+
+	sudo apt-get install bc
+	
 
 
 1. Now yo can execute the available commands provided:
