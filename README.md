@@ -1,6 +1,6 @@
-#Physical Presence Interface OOB (PPIx) Utility
+#OTA Utility
 
-PPIx OOB Utility is  extension script to open source IPMITOOL which allows system admin to input the PPIx OOB hex codes in human readable verbose format and decode the response to human readable format.
+OTA (One Touch Activation) Utility is  extension script to open source IPMITOOL which allows system admin to input the PPIx OOB hex codes in human readable verbose format and decode the response to human readable format.
 
 **Servers supported:**
 
@@ -27,7 +27,7 @@ PPIx OOB Utility is  extension script to open source IPMITOOL which allows syste
 1. Clone or download the repository from github and execute the following command in your IPMItool enabled VM:
 
 
-	ln -s <your_github_repository_location>/ppix-script/src/main/script/ppix_OOB_script.sh /usr/local/bin/ppix_OOB_script
+	ln -s <your_github_repository_location>/ppix-script/src/main/script/ota.sh /usr/local/bin/ota
 
 2. Make sure you have bc package installed:
 	
@@ -57,4 +57,4 @@ PPIx OOB Utility is  extension script to open source IPMITOOL which allows syste
 
 For example, to run discovery:
 
-	ppix_OOB_script discovery -H "BMC IP address" -U username -P password
+	ota discovery -H "BMC IP address" -U username -P password

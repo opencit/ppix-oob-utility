@@ -1,4 +1,4 @@
-Physical Presence Interface (PPIx) Utility is released under the BSD license 
+One Touch Activation (OTA) Utility is released under the BSD license 
 
 ====
 Copyright (c) 2015-2016, Intel Corporation
