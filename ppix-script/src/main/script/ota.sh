@@ -1,7 +1,9 @@
 #!/bin/bash
 
 # How to install:
-#     ln -s /root/projects/dcg_security-ipmi-ppix-extensions/ppix-script/src/main/script/ppix-script.sh /usr/local/bin/ppix-script
+#     ln -s <your github repository location>/ppix-script/src/main/script/ota.sh /usr/local/bin/ota
+# Example:
+#     ln -s /root/projects/dcg_security-ipmi-ppix-extensions/ppix-script/src/main/script/ota.sh /usr/local/bin/ota
 
 VERBOSE=0
 RUN_IPMITOOL=yes
@@ -11,10 +13,10 @@ IPMITOOL_OUTPUT_STDIN=no
 help_usage() {
 
   echo -e '
-\e[1mVERSION:\e[0m 1.0
+\e[1mVERSION:\e[0m 1.1
 
 \e[1mUSAGE:\e[0m
-\e[0m        ./ppix-script \e[4mCOMMAND\e[0m -H <\e[4mBMC_IPADDRESS\e[0m> -U <\e[4mBMC_USERNAME\e[0m> -P [\e[4mBMC_PASSWORD\e[0m] 
+\e[0m        ./ota \e[4mCOMMAND\e[0m -H <\e[4mBMC_IPADDRESS\e[0m> -U <\e[4mBMC_USERNAME\e[0m> -P [\e[4mBMC_PASSWORD\e[0m] 
 
 \e[1mCOMMANDS:\e[0m
 
@@ -39,9 +41,9 @@ help_usage() {
 
 '
 #Run ipmitool command and parse output:
-#   ppix-script args
+#   ota args
 #Skip ipmitool command and parse predefined output:
-#    ppix-script args < /path/to/output
+#    ota args < /path/to/output
 #'
 }
 
@@ -552,7 +554,7 @@ parse_raw_response() {
 
 
 # check if there is input from stdin
-# example:  ppix-script discovery < /path/to/test.file
+# example:  ota discovery < /path/to/test.file
 if [ ! -t 0 ]; then
   RUN_IPMITOOL=no
   IPMITOOL_OUTPUT_STDIN="yes"
