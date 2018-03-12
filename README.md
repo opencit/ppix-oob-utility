@@ -24,22 +24,22 @@ OTA (One Touch Activation) Utility is  extension script to open source IPMITOOL 
 
 
 
-1. Clone or download the repository from github and execute the following command in your IPMItool enabled VM:
+1. Clone or download the repository from GitHub and execute the following command in your IPMItool enabled VM:
 
 
-	ln -s <your_github_repository_location>/ppix-script/src/main/script/ota.sh /usr/local/bin/ota
+	`$ ln -s <your_github_repository_location>/ppix-script/src/main/script/ota.sh /usr/local/bin/ota`
 
-2. Make sure you have bc package installed:
+2. Make sure you have th bc package installed:
 	
-	bc -version
+	`$ bc -version`
 
 	In case this package is missing install it in your VM. For Ubuntu the command is as follows:
 
-	sudo apt-get install bc
+	`$ sudo apt-get install bc`
 	
 
 
-1. Now yo can execute the available commands provided:
+1. Now you can execute the available commands provided:
 
 			
 			discovery						Determines the status of TXT and dTPM features.
@@ -57,4 +57,4 @@ OTA (One Touch Activation) Utility is  extension script to open source IPMITOOL 
 
 For example, to run discovery:
 
-	ota discovery -H "BMC IP address" -U username -P password
+	`$ ota discovery -H "BMC IP address" -U username -P password`
